@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { Menu, X, ShieldCheck, UserRound, ChevronDown, Home, BriefcaseBusiness, QrCode, LayoutDashboard, LogIn } from 'lucide-react';
 import type { Lang } from '../i18n/translations';
 import { TEXT } from '../i18n/translations';
 import type { UserRole } from '../shared/types';
@@ -12,85 +14,55 @@ interface NavbarProps {
   onOpenAuth: () => void;
 }
 
-export function Navbar({
-  lang,
-  activeSection,
-  onNavigate,
-  currentUser,
-  onOpenAuth,
-}: NavbarProps) {
+export function Navbar({ lang, activeSection, onNavigate, currentUser, onOpenAuth }: NavbarProps) {
   const t = TEXT[lang];
-
-  const navItems: Array<{ id: AppSection; label: string }> = [
-    { id: 'specialists', label: t.navSpecialists },
-    { id: 'requests', label: t.navRequests },
-    { id: 'verify', label: t.navVerify },
-    { id: 'workspace', label: t.navWorkspace },
-    { id: 'admin', label: t.navAdmin },
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const isAr = lang === 'ar';
+  const isAdmin = currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'MODERATOR';
+  const navItems = [
+    { id: 'specialists' as const, label: isAr ? 'الرئيسية' : 'Home', icon: Home },
+    { id: 'requests' as const, label: t.navRequests, icon: BriefcaseBusiness },
+    { id: 'verify' as const, label: t.navVerify, icon: QrCode },
+    { id: 'workspace' as const, label: t.navWorkspace, icon: LayoutDashboard },
+    ...(isAdmin ? [{ id: 'admin' as const, label: t.navAdmin, icon: ShieldCheck }] : []),
   ];
 
+  const go = (section: AppSection) => {
+    onNavigate(section);
+    setMobileOpen(false);
+  };
+
   return (
-    <header className="sticky top-0 z-30 border-b border-stone-200/90 dark:border-slate-800/90 bg-white/90 dark:bg-[#0B0F17]/90 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-8">
-        {/* Zone 1: Single-element brand wordmark */}
-        <button
-          type="button"
-          onClick={() => onNavigate('specialists')}
-          className="text-2xl font-bold tracking-tight text-slate-950 dark:text-white whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-blue-700 rounded"
-        >
-          {t.brand}
+    <header className="sticky top-0 z-40 border-b border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-[#0B1220]/90 backdrop-blur-xl">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-[70px] flex items-center justify-between gap-4">
+        <button type="button" onClick={() => go('specialists')} aria-label={isAr ? 'العودة للرئيسية' : 'Go to home'} className="group flex items-center gap-3 shrink-0 rounded-xl focus-visible:outline-2 focus-visible:outline-blue-600">
+          <span className="relative flex h-10 w-10 items-center justify-center rounded-[14px] bg-gradient-to-br from-blue-700 to-cyan-500 text-xl font-black text-white shadow-lg shadow-blue-900/20">و</span>
+          <span className="text-start leading-tight"><span className="block text-lg font-black tracking-[0.08em] text-slate-950 dark:text-white">WASEET</span><span className="block text-[10px] font-medium tracking-wide text-slate-500 dark:text-slate-400">{isAr ? 'منصة الخبرات' : 'EXPERTISE PLATFORM'}</span></span>
         </button>
 
-        {/* Zone 2: 5 concise single-line text nav links */}
-        <nav className="hidden md:flex items-center gap-7 text-sm font-medium">
-          {navItems.map((item) => {
-            const active = activeSection === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onNavigate(item.id)}
-                className={`whitespace-nowrap shrink-0 py-1.5 border-b-2 transition-colors duration-150 ${
-                  active
-                    ? 'border-blue-700 text-slate-950 dark:text-white dark:border-blue-400 font-semibold'
-                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
-                }`}
-              >
-                {item.label}
-              </button>
-            );
+        <nav aria-label={isAr ? 'التنقل الرئيسي' : 'Main navigation'} className="hidden lg:flex items-center gap-1 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 p-1.5">
+          {navItems.map(({ id, label, icon: Icon }) => {
+            const active = activeSection === id;
+            return <button key={id} type="button" onClick={() => go(id)} aria-current={active ? 'page' : undefined} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${active ? 'bg-blue-700 text-white shadow-md shadow-blue-900/15' : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 hover:text-blue-700 dark:hover:text-blue-300'}`}><Icon className="h-4 w-4" />{label}</button>;
           })}
         </nav>
 
-        {/* Zone 3: 1 primary action */}
-        <div className="shrink-0">
-          <button
-            type="button"
-            onClick={onOpenAuth}
-            className="px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-slate-950 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-lg transition-colors duration-150 whitespace-nowrap shrink-0"
-          >
-            {currentUser ? currentUser.name : t.signInCta}
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={onOpenAuth} className="hidden sm:inline-flex max-w-[190px] items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition">
+            {currentUser ? <><UserRound className="h-4 w-4 shrink-0" /><span className="truncate">{currentUser.name}</span><ChevronDown className="h-3 w-3 shrink-0" /></> : <><LogIn className="h-4 w-4" />{t.signInCta}</>}
+          </button>
+          <button type="button" onClick={() => setMobileOpen((open) => !open)} aria-label={mobileOpen ? (isAr ? 'إغلاق القائمة' : 'Close menu') : (isAr ? 'فتح القائمة' : 'Open menu')} aria-expanded={mobileOpen} aria-controls="waseet-mobile-navigation" className="lg:hidden flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:border-blue-400">
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
-      {/* Compact mobile navigation row */}
-      <div className="md:hidden border-t border-stone-200 dark:border-slate-800 px-4 py-2 flex items-center gap-4 overflow-x-auto text-xs font-medium">
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onNavigate(item.id)}
-            className={`whitespace-nowrap shrink-0 pb-1 border-b-2 ${
-              activeSection === item.id
-                ? 'border-blue-700 text-slate-950 dark:text-white font-semibold'
-                : 'border-transparent text-slate-600 dark:text-slate-400'
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      {mobileOpen && <div id="waseet-mobile-navigation" className="lg:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1220] px-4 py-3 shadow-xl">
+        <nav aria-label={isAr ? 'قائمة الهاتف' : 'Mobile navigation'} className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {navItems.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => go(id)} aria-current={activeSection === id ? 'page' : undefined} className={`flex items-center gap-2 rounded-xl border px-3 py-3 text-start text-xs font-bold transition ${activeSection === id ? 'border-blue-700 bg-blue-700 text-white' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-200'}`}><Icon className="h-4 w-4 shrink-0" />{label}</button>)}
+        </nav>
+        <button type="button" onClick={() => { setMobileOpen(false); onOpenAuth(); }} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 dark:bg-blue-700 px-4 py-3 text-xs font-bold text-white"><UserRound className="h-4 w-4" />{currentUser ? currentUser.name : t.signInCta}</button>
+      </div>}
     </header>
   );
 }
