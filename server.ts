@@ -95,12 +95,58 @@ function appendAudit(
   });
 }
 
+
+/**
+ * One-time, idempotent cleanup for the demo records shipped in earlier builds.
+ * It deliberately targets only the fixed demo IDs; real customer records remain untouched.
+ */
+async function removeLegacyDemoData(): Promise<void> {
+  const demoUserIds = new Set(['usr-client-01', 'usr-spec-01', 'usr-spec-02', 'usr-spec-03', 'usr-spec-04']);
+  const demoSpecialistIds = new Set(['spec-01', 'spec-02', 'spec-03', 'spec-04']);
+  const demoOrderIds = new Set(['ord-01', 'ord-02']);
+  const demoIds = {
+    documents: new Set(['doc-01', 'doc-02', 'doc-03', 'doc-04', 'doc-05']),
+    services: new Set(['srv-01', 'srv-02', 'srv-03', 'srv-04']),
+    offers: new Set(['off-01']),
+    agreements: new Set(['agr-01']),
+    deliverables: new Set(['del-01']),
+    messages: new Set(['msg-01', 'msg-02']),
+    payments: new Set(['pay-01']),
+    reviews: new Set(['rev-01']),
+  };
+
+  await withTransaction(initFn, (draft) => {
+    draft.users = draft.users.filter((item) => !demoUserIds.has(item.id));
+    draft.specialists = draft.specialists.filter((item) => !demoSpecialistIds.has(item.id));
+    draft.documents = draft.documents.filter((item) => !demoIds.documents.has(item.id) && !demoSpecialistIds.has(item.specialistId));
+    draft.services = draft.services.filter((item) => !demoIds.services.has(item.id) && !demoSpecialistIds.has(item.specialistId));
+    draft.orders = draft.orders.filter((item) => !demoOrderIds.has(item.id) && !demoUserIds.has(item.clientId) && !(item.assignedSpecialistId && demoSpecialistIds.has(item.assignedSpecialistId)));
+    draft.offers = draft.offers.filter((item) => !demoIds.offers.has(item.id) && !demoOrderIds.has(item.orderId) && !demoSpecialistIds.has(item.specialistId));
+    draft.agreements = draft.agreements.filter((item) => !demoIds.agreements.has(item.id) && !demoOrderIds.has(item.orderId));
+    draft.deliverables = draft.deliverables.filter((item) => !demoIds.deliverables.has(item.id) && !demoOrderIds.has(item.orderId));
+    draft.messages = draft.messages.filter((item) => !demoIds.messages.has(item.id) && !demoOrderIds.has(item.orderId) && !demoUserIds.has(item.senderId));
+    draft.paymentIntents = draft.paymentIntents.filter((item) => !demoIds.payments.has(item.id) && !demoOrderIds.has(item.orderId) && !demoUserIds.has(item.payerId));
+    draft.reviews = draft.reviews.filter((item) => !demoIds.reviews.has(item.id) && !demoOrderIds.has(item.orderId) && !demoSpecialistIds.has(item.specialistId));
+    draft.disputes = draft.disputes.filter((item) => !demoOrderIds.has(item.orderId));
+    draft.payouts = draft.payouts.filter((item) => !demoSpecialistIds.has(item.specialistId));
+    draft.journalEntries = draft.journalEntries.filter((entry) => !demoOrderIds.has(entry.referenceId) && !entry.idempotencyKey.startsWith('seed-je-'));
+    const usedAccountIds = new Set(draft.journalEntries.flatMap((entry) => entry.lines.map((line) => line.ledgerAccountId)));
+    draft.ledgerAccounts = draft.ledgerAccounts.filter((account) => usedAccountIds.has(account.id));
+    draft.auditLogs = draft.auditLogs.filter((entry) => entry.id !== 'aud-01' && !demoUserIds.has(entry.actorId) && !demoOrderIds.has(entry.entityId));
+  });
+}
+
 async function startServer(): Promise<void> {
+  const configuredSessionSecret = process.env.SESSION_SECRET?.trim();
+  if (process.env.NODE_ENV === 'production' && (!configuredSessionSecret || configuredSessionSecret.length < 32)) {
+    throw new Error('Production startup blocked: configure SESSION_SECRET with at least 32 random characters.');
+  }
   const app = express();
   app.use(express.json({ limit: '1mb' }));
 
   // Initialize store on boot cleanly
   getState(initFn);
+  await removeLegacyDemoData();
 
   // Health endpoint
   app.get('/api/health', (_req, res) => {
@@ -874,124 +920,13 @@ async function startServer(): Promise<void> {
     }
   });
 
-  app.post('/api/orders/:id/fund', requireAuth, requireRole('CLIENT'), async (req: AuthRequest, res) => {
-    const orderId = req.params.id;
-    const { provider, paymentCurrency, txHash, confirmationsCount, idempotencyKey } = req.body as {
-      provider?: 'PSP_CARD_MADA' | 'PSP_BANK_TRANSFER' | 'USDT_TRC20';
-      paymentCurrency?: SupportedCurrency;
-      txHash?: string;
-      confirmationsCount?: number;
-      idempotencyKey?: string;
-    };
-
-    try {
-      const result = await withTransaction(initFn, (draft) => {
-        const order = draft.orders.find((o) => o.id === orderId && o.clientId === req.authUser!.userId);
-        if (!order) throw new Error('ORDER_NOT_FOUND');
-        if (order.status !== 'AWAITING_PAYMENT') {
-          throw new Error('INVALID_STATE');
-        }
-        const agreement = draft.agreements.find((a) => a.orderId === order.id);
-        if (!agreement) throw new Error('NO_AGREEMENT');
-
-        const selectedProvider = provider || 'PSP_CARD_MADA';
-        const targetCurrency: SupportedCurrency =
-          selectedProvider === 'USDT_TRC20' ? 'USDT' : paymentCurrency || agreement.agreedCurrency;
-
-        if (selectedProvider === 'USDT_TRC20') {
-          const conf = Number(confirmationsCount || 0);
-          if (!txHash || txHash.trim().length < 12) {
-            throw new Error('USDT_TX_HASH_REQUIRED');
-          }
-          if (conf < draft.settings.usdtMinConfirmations) {
-            throw new Error('USDT_CONFIRMATIONS_INSUFFICIENT');
-          }
-        }
-
-        // Convert agreed amount into settlement payment currency using locked FX rates
-        const agreedRate = draft.settings.fxRatesFromUsd[agreement.agreedCurrency] || 1;
-        const payRate = draft.settings.fxRatesFromUsd[targetCurrency] || 1;
-        const amountInUsd = agreement.agreedAmount / agreedRate;
-        const expectedAmount = Number((amountInUsd * payRate).toFixed(2));
-
-        const key = idempotencyKey || `fund-${order.id}-${agreement.id}`;
-        const existingIntent = draft.paymentIntents.find((p) => p.idempotencyKey === key);
-        if (existingIntent) {
-          return { order, paymentIntent: existingIntent };
-        }
-
-        const intent = {
-          id: `pay-${crypto.randomUUID().slice(0, 8)}`,
-          orderId: order.id,
-          payerId: req.authUser!.userId,
-          provider: selectedProvider,
-          providerRef:
-            selectedProvider === 'USDT_TRC20'
-              ? txHash!.trim()
-              : `${selectedProvider}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
-          expectedAmount,
-          paymentCurrency: targetCurrency,
-          lockedFxRate: Number((payRate / agreedRate).toFixed(6)),
-          cryptoNetwork: selectedProvider === 'USDT_TRC20' ? draft.settings.usdtNetwork : undefined,
-          depositAddress:
-            selectedProvider === 'USDT_TRC20'
-              ? `T${crypto.createHash('sha256').update(order.id).digest('hex').slice(0, 33).toUpperCase()}`
-              : undefined,
-          txHash: selectedProvider === 'USDT_TRC20' ? txHash?.trim() : undefined,
-          confirmationsCount:
-            selectedProvider === 'USDT_TRC20' ? Number(confirmationsCount) : undefined,
-          status: 'CONFIRMED' as const,
-          idempotencyKey: key,
-          createdAt: new Date().toISOString(),
-        };
-        draft.paymentIntents.push(intent);
-
-        // Update agreement settlement currency & rate
-        agreement.settlementCurrency = targetCurrency;
-        agreement.lockedFxRate = intent.lockedFxRate;
-
-        // Post balanced Double-Entry Ledger entry: DR 1010 PSP Clearing / CR 2020 Held Order Funds
-        postJournalEntry(draft, {
-          referenceType: 'PAYMENT',
-          referenceId: order.id,
-          description: `تأكيد دفع وتمويل الطلب ${order.orderNumber} عبر ${selectedProvider}`,
-          currency: targetCurrency,
-          idempotencyKey: `je-${key}`,
-          createdBy: req.authUser!.userId,
-          lines: [
-            { accountCode: '1010', ownerUserId: null, direction: 'DEBIT', amount: expectedAmount },
-            { accountCode: '2020', ownerUserId: null, direction: 'CREDIT', amount: expectedAmount },
-          ],
-        });
-
-        order.status = 'FUNDED_HELD';
-        order.updatedAt = new Date().toISOString();
-        appendAudit(
-          draft,
-          req.authUser!.userId,
-          'CLIENT',
-          'ORDER_FUNDED_HELD',
-          'ORDER',
-          order.id,
-          `حجز مبلغ ${expectedAmount} ${targetCurrency} للطلب ${order.orderNumber}`,
-        );
-        return { order, paymentIntent: intent };
-      });
-      res.json(result);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Funding failed';
-      if (msg === 'USDT_TX_HASH_REQUIRED') {
-        res.status(400).json({ error: 'Valid TRC-20 transaction hash is required for USDT' });
-        return;
-      }
-      if (msg === 'USDT_CONFIRMATIONS_INSUFFICIENT') {
-        res.status(400).json({
-          error: 'At least 20 blockchain confirmations are required before confirming USDT payment',
-        });
-        return;
-      }
-      res.status(400).json({ error: msg });
-    }
+  // Never mark a payment as received from client-supplied transaction details.
+  // A verified PSP webhook or trusted blockchain indexer must be integrated first.
+  app.post('/api/orders/:id/fund', requireAuth, requireRole('CLIENT'), (_req, res) => {
+    res.status(503).json({
+      error: 'PAYMENT_PROVIDER_NOT_CONFIGURED',
+      message: 'Payments are temporarily unavailable until a licensed provider or trusted on-chain verifier is configured.',
+    });
   });
 
   app.post('/api/orders/:id/start', requireAuth, requireRole('SPECIALIST'), async (req: AuthRequest, res) => {

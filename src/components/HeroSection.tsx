@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowUpLeft, ArrowUpRight, Globe, Moon, Search, ShieldCheck, Sun } from 'lucide-react';
+import {
+  ArrowUpLeft, ArrowUpRight, ArrowLeft, ArrowRight, Globe, Moon,
+  Search, ShieldCheck, Sun, FileCheck2, WalletCards, MessageCircle,
+} from 'lucide-react';
+import heroImage from '../assets/images/hero_wseet_workspace_1795807712500.jpg';
 import type { Lang } from '../i18n/translations';
 import { TEXT } from '../i18n/translations';
 import type { SupportedCurrency } from '../shared/types';
@@ -20,273 +24,176 @@ interface HeroSectionProps {
   completedOrdersCount: number;
 }
 
-const HERO_IMG_PATH = '/src/assets/images/hero_wseet_workspace_1795807712500.jpg';
-
 export function HeroSection({
-  lang,
-  theme,
-  currency,
-  onToggleLang,
-  onToggleTheme,
-  onChangeCurrency,
-  onNavigate,
-  onQuickSearch,
-  verifiedCount,
-  categoriesCount,
-  completedOrdersCount,
+  lang, theme, currency, onToggleLang, onToggleTheme, onChangeCurrency,
+  onNavigate, onQuickSearch, verifiedCount, categoriesCount, completedOrdersCount,
 }: HeroSectionProps) {
   const t = TEXT[lang];
-  const [imgError, setImgError] = useState(false);
   const [heroQuery, setHeroQuery] = useState('');
+  const isAr = lang === 'ar';
+  const ArrowIcon = isAr ? ArrowUpLeft : ArrowUpRight;
+  const DirectionIcon = isAr ? ArrowLeft : ArrowRight;
 
-  const ArrowIcon = lang === 'ar' ? ArrowUpLeft : ArrowUpRight;
+  const stats = [
+    { value: verifiedCount, label: isAr ? 'مختصون موثقون' : 'Verified specialists', icon: ShieldCheck },
+    { value: categoriesCount, label: isAr ? 'مجالات تخصصية' : 'Specialty categories', icon: FileCheck2 },
+    { value: completedOrdersCount, label: isAr ? 'طلبات مكتملة' : 'Completed requests', icon: WalletCards },
+  ];
 
-  const pillars =
-    lang === 'ar'
-      ? [
-          {
-            num: '01.',
-            title: 'توثيق إلزامي عبر QR',
-            desc: 'لا يُسمح لأي مختص بتقديم عرض قبل التحقق من الهوية والمؤهلات مع سجل تحقق عام دون كشف البيانات الشخصية.',
-          },
-          {
-            num: '02.',
-            title: 'اتفاقية رقمية ملزمة',
-            desc: 'لقطة عقد غير قابلة للتعديل تثبت المخرجات والموعد النهائي وعدد التعديلات وسعر الصرف قبل الدفع.',
-          },
-          {
-            num: '03.',
-            title: 'سجل مالي مزدوج القيد',
-            desc: 'فصل تام بين الأموال المحجوزة ومستحقات المختصين وعمولة المنصة والمبالغ المستردة بدقة محاسبية.',
-          },
-        ]
-      : [
-          {
-            num: '01.',
-            title: 'Mandatory QR Verification',
-            desc: 'Specialists cannot submit offers until identity and degrees are verified, backed by a zero-PII public QR registry.',
-          },
-          {
-            num: '02.',
-            title: 'Immutable Agreement Snapshot',
-            desc: 'Scope, deliverables, revision limits, and locked FX rates are signed digitally before order funding.',
-          },
-          {
-            num: '03.',
-            title: 'Double-Entry Financial Ledger',
-            desc: 'Strict accounting segregation across held funds, specialist payables, platform commission, and refunds.',
-          },
-        ];
+  const features = [
+    {
+      icon: ShieldCheck,
+      title: isAr ? 'ملفات مهنية قابلة للتحقق' : 'Verifiable professional profiles',
+      desc: isAr ? 'راجع حالة اعتماد المختص ومصدر التحقق قبل بدء التعامل.' : 'Review a specialist’s credential status and verification source.',
+    },
+    {
+      icon: FileCheck2,
+      title: isAr ? 'اتفاق واضح لكل طلب' : 'A clear agreement for every request',
+      desc: isAr ? 'حدد نطاق العمل والتسليم والمدة والتعديلات قبل اعتماد العرض.' : 'Define scope, delivery, timeline and revisions before accepting an offer.',
+    },
+    {
+      icon: MessageCircle,
+      title: isAr ? 'تواصل منظم داخل المنصة' : 'Organized in-platform communication',
+      desc: isAr ? 'تابع تفاصيل الطلب ومراحله ورسائله من مساحة عمل واحدة.' : 'Keep request details, progress and messages in one workspace.',
+    },
+  ];
 
   return (
-    <section className="border-b border-stone-200 dark:border-slate-800 bg-white dark:bg-[#0D121B]">
-      {/* Compact Utility Bar */}
-      <div className="border-b border-stone-200/80 dark:border-slate-800/80 bg-[#F8F7F4] dark:bg-[#090C12]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-600 dark:text-slate-400">
-          <p className="truncate max-w-2xl">{t.ledgerRuleBanner}</p>
+    <section className="relative overflow-hidden border-b border-slate-200 dark:border-slate-800 bg-[#F6F8FC] dark:bg-[#080E1A]">
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+        <div className="absolute -top-40 -start-28 h-96 w-96 rounded-full bg-blue-400/15 blur-3xl" />
+        <div className="absolute top-24 -end-32 h-96 w-96 rounded-full bg-cyan-300/10 blur-3xl" />
+        <div className="absolute inset-0 opacity-[0.035] dark:opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(#64748b 1px, transparent 1px)', backgroundSize: '22px 22px' }} />
+      </div>
 
-          <div className="flex items-center gap-2.5 shrink-0">
-            <div className="flex items-center gap-0.5 p-0.5 bg-stone-200/80 dark:bg-slate-800 rounded-lg">
+      <div className="relative border-b border-slate-200/80 dark:border-slate-800/80 bg-white/70 dark:bg-slate-950/40 backdrop-blur">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-3xl">
+            {t.ledgerRuleBanner}
+          </p>
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-0.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-1">
               {(['SAR', 'USD', 'USDT'] as SupportedCurrency[]).map((curr) => (
-                <button
-                  key={curr}
-                  type="button"
-                  onClick={() => onChangeCurrency(curr)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-mono font-semibold transition-colors whitespace-nowrap shrink-0 ${
-                    currency === curr
-                      ? 'bg-white dark:bg-slate-900 text-slate-950 dark:text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
-                  }`}
-                >
+                <button key={curr} type="button" onClick={() => onChangeCurrency(curr)}
+                  aria-pressed={currency === curr}
+                  className={`rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-colors ${currency === curr ? 'bg-blue-700 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}>
                   {curr}
                 </button>
               ))}
             </div>
-
-            <button
-              type="button"
-              onClick={onToggleLang}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 border border-stone-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:border-stone-300 dark:hover:border-slate-600 whitespace-nowrap shrink-0 transition-colors"
-            >
-              <Globe className="w-3.5 h-3.5" />
-              <span>{t.languageLabel}</span>
+            <button type="button" onClick={onToggleLang} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:border-blue-400">
+              <Globe className="h-3.5 w-3.5" />{t.languageLabel}
             </button>
-
-            <button
-              type="button"
-              onClick={onToggleTheme}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 border border-stone-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:border-stone-300 dark:hover:border-slate-600 whitespace-nowrap shrink-0 transition-colors"
-            >
-              {theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
-              <span>{theme === 'light' ? t.themeDark : t.themeLight}</span>
+            <button type="button" onClick={onToggleTheme} aria-label={theme === 'light' ? t.themeDark : t.themeLight}
+              className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-slate-700 dark:text-slate-200 hover:border-blue-400">
+              {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Main Editorial Hero Split */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 lg:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-stretch">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="lg:col-span-6 flex flex-col justify-between space-y-8"
-          >
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-10 pb-12 sm:pt-16 sm:pb-16 lg:pt-20 lg:pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-9 lg:gap-12 items-center">
+          <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            className="lg:col-span-6 space-y-7">
             <div className="space-y-5">
-              <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 tracking-wide">
-                {lang === 'ar'
-                  ? 'wseet · منصة تجمع الخبرة بالفرصة'
-                  : 'wseet · Where Verified Expertise Meets Opportunity'}
-              </p>
-
-              <h1 className="text-3xl sm:text-4xl lg:text-[2.75rem] font-bold leading-[1.18] text-slate-950 dark:text-white headline-balance">
-                {t.heroTitle}
+              <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 dark:border-blue-900 bg-blue-50/90 dark:bg-blue-950/50 px-3 py-1.5 text-xs font-semibold text-blue-800 dark:text-blue-300">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                {isAr ? 'وسيطك للخدمات والخبرات المتخصصة' : 'Your hub for specialist services and expertise'}
+              </div>
+              <h1 className="text-[2rem] sm:text-5xl lg:text-[3.35rem] font-extrabold leading-[1.2] tracking-tight text-slate-950 dark:text-white headline-balance">
+                {isAr ? 'اعثر على الخبرة المناسبة، وأنجز عملك بثقة.' : 'Find the right expertise. Move your work forward.'}
               </h1>
-
-              <p className="text-base text-slate-600 dark:text-slate-300 leading-relaxed max-w-xl">
-                {t.heroSubtitle}
+              <p className="max-w-xl text-base sm:text-lg leading-8 text-slate-600 dark:text-slate-300">
+                {isAr
+                  ? 'منصة تربط أصحاب الطلبات بالمختصين في المجالات العلمية والمهنية والتقنية، مع ملفات موثقة ومسار عمل واضح من الطلب حتى التسليم.'
+                  : 'A marketplace connecting clients with academic, professional and technical specialists through verifiable profiles and a clear workflow from request to delivery.'}
               </p>
-
-              {/* Quick Search Bar integrated smoothly into Hero */}
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  onQuickSearch(heroQuery);
-                }}
-                className="flex flex-col sm:flex-row gap-2.5 pt-1 max-w-xl"
-              >
-                <div className="relative flex-1">
-                  <Search className="w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2 start-3.5 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={heroQuery}
-                    onChange={(e) => setHeroQuery(e.target.value)}
-                    placeholder={t.searchPlaceholder}
-                    className="w-full ps-10 pe-3.5 py-2.5 text-sm border border-stone-300 dark:border-slate-700 rounded-lg bg-[#F8F7F4] dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:border-blue-700"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-white bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-lg transition-colors whitespace-nowrap shrink-0"
-                >
-                  <span>{lang === 'ar' ? 'ابحث عن مختص' : 'Find Specialist'}</span>
-                  <ArrowIcon className="w-4 h-4" />
-                </button>
-              </form>
             </div>
 
-            <div className="flex flex-wrap items-center gap-5 pt-2 text-sm">
-              <button
-                type="button"
-                onClick={() => onNavigate('workspace')}
-                className="font-semibold text-slate-950 dark:text-white underline underline-offset-4 hover:text-blue-700 dark:hover:text-blue-400 whitespace-nowrap"
-              >
-                {lang === 'ar' ? 'نشر طلب خدمة جديد' : 'Post a New Request'}
+            <form onSubmit={(e) => { e.preventDefault(); onQuickSearch(heroQuery.trim()); }}
+              className="flex flex-col sm:flex-row gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 shadow-xl shadow-slate-900/5 max-w-2xl">
+              <div className="relative flex-1">
+                <Search className="absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input value={heroQuery} onChange={(e) => setHeroQuery(e.target.value)}
+                  placeholder={t.searchPlaceholder} aria-label={t.searchPlaceholder}
+                  className="w-full rounded-xl bg-transparent py-3 ps-10 pe-3 text-sm text-slate-900 dark:text-white outline-none placeholder:text-slate-400" />
+              </div>
+              <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-blue-700/20 transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+                {isAr ? 'ابحث عن مختص' : 'Find a specialist'}<ArrowIcon className="h-4 w-4" />
               </button>
-              <span className="text-stone-300 dark:text-slate-700" aria-hidden="true">/</span>
-              <button
-                type="button"
-                onClick={() => onNavigate('verify')}
-                className="inline-flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 whitespace-nowrap"
-              >
-                <ShieldCheck className="w-4 h-4 text-blue-700 dark:text-blue-400" />
-                <span>{t.heroSecondaryAction}</span>
+            </form>
+
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <button type="button" onClick={() => onNavigate('requests')}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500">
+                {isAr ? 'استعرض الطلبات المفتوحة' : 'Explore open requests'}<DirectionIcon className="h-4 w-4" />
+              </button>
+              <button type="button" onClick={() => onNavigate('workspace')}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white/70 dark:bg-slate-900/70 px-5 py-3 text-sm font-semibold text-slate-800 dark:text-slate-100 transition hover:border-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
+                {isAr ? 'انشر طلب خدمة' : 'Post a service request'}
+              </button>
+              <button type="button" onClick={() => onNavigate('verify')}
+                className="inline-flex min-h-12 items-center justify-center gap-2 px-2 py-3 text-sm font-semibold text-blue-800 dark:text-blue-300 hover:underline">
+                <ShieldCheck className="h-4 w-4" />{t.heroSecondaryAction}
               </button>
             </div>
           </motion.div>
 
-          {/* Right Media Column with Architectural Frame & Measured Contrast Scrim */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.99 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="lg:col-span-6"
-          >
-            {!imgError ? (
-              <div className="relative h-72 sm:h-88 lg:h-full min-h-[320px] rounded-2xl overflow-hidden border border-stone-200 dark:border-slate-800 bg-stone-100 dark:bg-slate-900">
-                <img
-                  src={HERO_IMG_PATH}
-                  alt={
-                    lang === 'ar'
-                      ? 'بيئة عمل استشارية وبحثية حديثة لمنصة wseet'
-                      : 'Modern research and consulting workspace for wseet'
-                  }
-                  referrerPolicy="no-referrer"
-                  onError={() => setImgError(true)}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent flex items-end p-6">
-                  <div className="text-white space-y-1">
-                    <p className="text-xs font-mono tracking-wide text-slate-200">
-                      SAR · USD · USDT (TRC-20)
-                    </p>
-                    <p className="text-sm sm:text-base font-semibold">
-                      {lang === 'ar'
-                        ? 'وساطة معرفية محمية بالتوثيق المرجعي والتحكيم المالي المزدوج'
-                        : 'Knowledge mediation protected by credential verification and double-entry governance'}
-                    </p>
-                  </div>
+          <motion.div initial={{ opacity: 0, x: isAr ? -18 : 18 }} animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.08 }}
+            className="lg:col-span-6">
+            <div className="relative mx-auto max-w-2xl">
+              <div className="absolute -inset-3 rounded-[2rem] bg-gradient-to-br from-blue-500/20 via-cyan-400/10 to-indigo-500/20 blur-xl" />
+              <div className="relative overflow-hidden rounded-[1.6rem] border border-white/70 dark:border-slate-700 bg-slate-200 shadow-2xl shadow-blue-950/15">
+                <img src={heroImage} alt={isAr ? 'مساحة عمل احترافية ترمز إلى التعاون والخبرة' : 'Professional workspace representing collaboration and expertise'}
+                  className="h-[290px] w-full object-cover sm:h-[390px] lg:h-[440px]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/10 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7 text-white">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-200">WASEET · {isAr ? 'منصة الخبرات' : 'EXPERTISE MARKETPLACE'}</p>
+                  <p className="mt-2 max-w-md text-lg sm:text-xl font-bold leading-relaxed">
+                    {isAr ? 'من الطلب الأول إلى التسليم النهائي، كل خطوة في مكان واحد.' : 'From the first request to final delivery, every step in one place.'}
+                  </p>
                 </div>
               </div>
-            ) : (
-              <div className="h-72 sm:h-88 lg:h-full min-h-[320px] rounded-2xl border border-stone-200 dark:border-slate-800 bg-gradient-to-br from-stone-100 to-stone-200 dark:from-slate-800 dark:to-slate-900 flex flex-col items-center justify-center p-8 text-center">
-                <ShieldCheck className="w-10 h-10 text-blue-700 dark:text-blue-400 mb-3" />
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                  {t.brand}
-                </p>
+              <div className="absolute -bottom-5 end-4 sm:end-7 flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 shadow-xl">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-900 dark:text-white">{isAr ? 'تحقق واضح من الاعتمادات' : 'Credential transparency'}</p>
+                  <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">{isAr ? 'اعرف حالة الملف ومصدره' : 'See status and source'}</p>
+                </div>
               </div>
-            )}
+            </div>
           </motion.div>
         </div>
 
-        {/* Full-width 4-column Summary Strip */}
-        <div className="mt-12 pt-8 border-t border-stone-200 dark:border-slate-800 grid grid-cols-2 lg:grid-cols-4 gap-6">
-          <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {lang === 'ar' ? 'المختصون الموثقون' : 'Verified Specialists'}
-            </p>
-            <p className="mt-1 text-2xl font-bold font-mono tabular-nums text-slate-950 dark:text-white">
-              {verifiedCount}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {lang === 'ar' ? 'التصنيفات التخصصية' : 'Service Categories'}
-            </p>
-            <p className="mt-1 text-2xl font-bold font-mono tabular-nums text-slate-950 dark:text-white">
-              {categoriesCount}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {lang === 'ar' ? 'عملات التسوية المعتمدة' : 'Settlement Currencies'}
-            </p>
-            <p className="mt-1 text-2xl font-bold font-mono tabular-nums text-slate-950 dark:text-white">
-              SAR · USD · USDT
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {lang === 'ar' ? 'طلبات مكتملة موثقة' : 'Verified Completions'}
-            </p>
-            <p className="mt-1 text-2xl font-bold font-mono tabular-nums text-slate-950 dark:text-white">
-              {completedOrdersCount}
-            </p>
-          </div>
+        <div className="mt-16 grid grid-cols-1 gap-4 border-y border-slate-200 dark:border-slate-800 py-6 sm:grid-cols-3 sm:gap-8">
+          {stats.map(({ value, label, icon: Icon }) => (
+            <div key={label} className="flex items-center gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-950/70 text-blue-800 dark:text-blue-300">
+                <Icon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-extrabold tabular-nums text-slate-950 dark:text-white">{value.toLocaleString(isAr ? 'ar' : 'en')}</p>
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
+              </div>
+            </div>
+          ))}
         </div>
 
-        {/* 3 Numbered Editorial Governance Pillars */}
-        <div className="mt-8 pt-8 border-t border-stone-200/80 dark:border-slate-800/80 grid grid-cols-1 md:grid-cols-3 gap-8">
-          {pillars.map((item) => (
-            <div key={item.num} className="space-y-1.5">
-              <h3 className="text-sm font-bold text-slate-950 dark:text-white">
-                <span className="font-mono text-blue-700 dark:text-blue-400 me-2">{item.num}</span>
-                {item.title}
-              </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                {item.desc}
-              </p>
+        <div className="grid grid-cols-1 gap-6 pt-8 md:grid-cols-3 md:gap-8">
+          {features.map(({ icon: Icon, title, desc }, index) => (
+            <div key={title} className="flex gap-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/50 p-5 transition hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-900/5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
+                <Icon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-950 dark:text-white"><span className="me-2 text-xs text-blue-600 dark:text-blue-400">0{index + 1}</span>{title}</p>
+                <p className="mt-1.5 text-xs leading-6 text-slate-600 dark:text-slate-400">{desc}</p>
+              </div>
             </div>
           ))}
         </div>

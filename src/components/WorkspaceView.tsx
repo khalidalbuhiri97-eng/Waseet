@@ -13,7 +13,6 @@ import { apiRequest } from '../lib/api';
 import type { Lang } from '../i18n/translations';
 import {
   formatMoney,
-  FX_FROM_USD,
   getDocStatusLabel,
   getOrderStatusLabel,
   getVerificationStatusLabel,
@@ -106,10 +105,6 @@ export function WorkspaceView({
 
   // Order Room interactions
   const [chatText, setChatText] = useState('');
-  const [payProvider, setPayProvider] = useState<'PSP_CARD_MADA' | 'PSP_BANK_TRANSFER' | 'USDT_TRC20'>('PSP_CARD_MADA');
-  const [payCurrency, setPayCurrency] = useState<SupportedCurrency>('SAR');
-  const [usdtTxHash, setUsdtTxHash] = useState('');
-  const [usdtConfirmations, setUsdtConfirmations] = useState('22');
   const [delNotes, setDelNotes] = useState('');
   const [delFile, setDelFile] = useState('');
   const [revReason, setRevReason] = useState('');
@@ -824,99 +819,18 @@ export function WorkspaceView({
                   {activeOrder.status === 'AWAITING_PAYMENT' &&
                     currentUser.role === 'CLIENT' &&
                     activeOrder.clientId === currentUser.id && (
-                      <form
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          void handleAction(async () => {
-                            await apiRequest(`/api/orders/${activeOrder.id}/fund`, {
-                              method: 'POST',
-                              body: JSON.stringify({
-                                provider: payProvider,
-                                paymentCurrency: payCurrency,
-                                txHash: payProvider === 'USDT_TRC20' ? usdtTxHash : undefined,
-                                confirmationsCount:
-                                  payProvider === 'USDT_TRC20' ? Number(usdtConfirmations) : undefined,
-                              }),
-                            });
-                          }, lang === 'ar' ? 'تم تأكيد الدفع وقيد حجز المبلغ في السجل المزدوج (1010 -> 2020).' : 'Payment confirmed and held in double-entry ledger.');
-                        }}
-                        className="p-4 border border-blue-200 dark:border-blue-900 rounded-lg space-y-3 text-xs"
-                      >
-                        <p className="font-bold text-slate-900 dark:text-white">
-                          {lang === 'ar' ? 'تمويل الطلب وحجز المبلغ عبر مزود الدفع' : 'Fund Order via Payment Provider'}
+                      <div role="status" className="rounded-xl border border-amber-300 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 p-4 space-y-2 text-xs">
+                        <p className="font-bold text-amber-900 dark:text-amber-200">
+                          {lang === 'ar' ? 'الدفع الإلكتروني غير مفعّل حالياً' : 'Online payments are not enabled yet'}
                         </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          <select
-                            value={payProvider}
-                            onChange={(e) => {
-                              const next = e.target.value as 'PSP_CARD_MADA' | 'PSP_BANK_TRANSFER' | 'USDT_TRC20';
-                              setPayProvider(next);
-                              if (next === 'USDT_TRC20') setPayCurrency('USDT');
-                            }}
-                            className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950"
-                          >
-                            <option value="PSP_CARD_MADA">بطاقة مدى / ائتمان (PSP مرخص)</option>
-                            <option value="PSP_BANK_TRANSFER">حوالة بنكية مرخصة (SAR / USD)</option>
-                            <option value="USDT_TRC20">USDT (شبكة TRON TRC-20 فقط)</option>
-                          </select>
-                          <select
-                            value={payCurrency}
-                            disabled={payProvider === 'USDT_TRC20'}
-                            onChange={(e) => setPayCurrency(e.target.value as SupportedCurrency)}
-                            className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950"
-                          >
-                            <option value="SAR">SAR</option>
-                            <option value="USD">USD</option>
-                            <option value="USDT">USDT</option>
-                          </select>
-                        </div>
-
-                        <p className="font-mono text-slate-600 dark:text-slate-300">
-                          {lang === 'ar' ? 'المبلغ المطلوب بعملة التسوية: ' : 'Settlement Amount: '}
-                          {(
-                            (activeOrder.agreement.agreedAmount /
-                              (FX_FROM_USD[activeOrder.agreement.agreedCurrency] || 1)) *
-                            (FX_FROM_USD[payCurrency] || 1)
-                          ).toFixed(2)}{' '}
-                          {payCurrency}
+                        <p className="leading-6 text-amber-800 dark:text-amber-300">
+                          {lang === 'ar'
+                            ? 'لن يتم تأكيد أي دفعة أو حجز أموال حتى ربط مزود دفع مرخّص أو خدمة تحقق مستقلة من شبكة البلوكشين. لا ترسل أموالاً إلى أي عنوان ولا تعتمد على إدخال عدد التأكيدات يدوياً.'
+                            : 'Payments will not be confirmed or funds held until a licensed payment provider or independent blockchain verifier is integrated. Do not send funds to any address or rely on manually entered confirmation counts.'}
                         </p>
-
-                        {payProvider === 'USDT_TRC20' && (
-                          <div className="space-y-2 p-3 border border-amber-200 dark:border-amber-900 bg-amber-50/70 dark:bg-amber-950/20 rounded-lg">
-                            <p className="text-amber-900 dark:text-amber-200">
-                              {lang === 'ar'
-                                ? 'تحذير الشبكة: يُقبل الإيداع عبر شبكة TRON (TRC-20) فقط ويتطلب 20 تأكيد كتلة على الأقل. الإرسال لشبكة خاطئة قد يؤدي لفقدان الأصول.'
-                                : 'Network Warning: Only TRON (TRC-20) is supported; minimum 20 block confirmations required.'}
-                            </p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              <input
-                                type="text"
-                                required
-                                value={usdtTxHash}
-                                onChange={(e) => setUsdtTxHash(e.target.value)}
-                                placeholder="TX Hash (12+ chars)"
-                                className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 font-mono"
-                              />
-                              <input
-                                type="number"
-                                required
-                                value={usdtConfirmations}
-                                onChange={(e) => setUsdtConfirmations(e.target.value)}
-                                placeholder="Confirmations (>= 20)"
-                                className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 font-mono"
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        <button
-                          type="submit"
-                          className="px-4 py-2 font-semibold text-white bg-blue-700 hover:bg-blue-800 rounded-lg"
-                        >
-                          {lang === 'ar' ? 'تأكيد الدفع وحجز المبلغ' : 'Confirm Payment & Hold Funds'}
-                        </button>
-                      </form>
+                      </div>
                     )}
+
                 </div>
               )}
 

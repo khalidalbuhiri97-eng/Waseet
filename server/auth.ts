@@ -3,10 +3,19 @@ import type { NextFunction, Request, Response } from 'express';
 import type { UserRecord, UserRole } from '../src/shared/types.ts';
 
 const EPHEMERAL_FALLBACK_SECRET = crypto.randomBytes(32).toString('hex');
+let warnedAboutEphemeralSecret = false;
 
 function getSessionSecret(): string {
   const envSecret = process.env.SESSION_SECRET?.trim();
-  return envSecret && envSecret.length >= 16 ? envSecret : EPHEMERAL_FALLBACK_SECRET;
+  if (envSecret && envSecret.length >= 32) return envSecret;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('SESSION_SECRET must be configured with at least 32 characters in production.');
+  }
+  if (!warnedAboutEphemeralSecret) {
+    console.warn('SESSION_SECRET is not configured; development sessions will not survive a server restart.');
+    warnedAboutEphemeralSecret = true;
+  }
+  return EPHEMERAL_FALLBACK_SECRET;
 }
 
 export function hashPassword(password: string): string {
