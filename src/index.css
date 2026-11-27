@@ -3,34 +3,44 @@
 
 @layer base {
   :root {
-    --font-sans: 'IBM Plex Sans Arabic', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-sans: 'IBM Plex Sans Arabic', 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+    color-scheme: light;
   }
 
   html {
     font-family: var(--font-sans);
     scroll-behavior: smooth;
+    scroll-padding-top: 5.5rem;
+    -webkit-tap-highlight-color: transparent;
   }
 
+  html.dark { color-scheme: dark; }
+
   body {
-    background-color: #f8f7f4;
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #f6f8fc;
     color: #0f172a;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
   }
 
   html.dark body {
-    background-color: #090c12;
+    background-color: #080e1a;
     color: #f1f5f9;
   }
 
-  code, pre, .font-mono {
-    font-family: var(--font-mono);
-  }
+  button, input, select, textarea { font: inherit; }
+  button { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+  input, select, textarea { max-width: 100%; }
+  img { max-width: 100%; }
+
+  ::selection { background: rgb(37 99 235 / 18%); }
+  :focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
 }
 
-.tabular-nums {
-  font-variant-numeric: tabular-nums;
-}
-
-.headline-balance {
-  text-wrap: balance;
-}
+.tabular-nums { font-variant-numeric: tabular-nums; }
+.headline-balance { text-wrap: balance; }
