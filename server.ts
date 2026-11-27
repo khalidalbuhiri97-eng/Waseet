@@ -916,124 +916,13 @@ async function startServer(): Promise<void> {
     }
   });
 
-  app.post('/api/orders/:id/fund', requireAuth, requireRole('CLIENT'), async (req: AuthRequest, res) => {
-    const orderId = req.params.id;
-    const { provider, paymentCurrency, txHash, confirmationsCount, idempotencyKey } = req.body as {
-      provider?: 'PSP_CARD_MADA' | 'PSP_BANK_TRANSFER' | 'USDT_TRC20';
-      paymentCurrency?: SupportedCurrency;
-      txHash?: string;
-      confirmationsCount?: number;
-      idempotencyKey?: string;
-    };
-
-    try {
-      const result = await withTransaction(initFn, (draft) => {
-        const order = draft.orders.find((o) => o.id === orderId && o.clientId === req.authUser!.userId);
-        if (!order) throw new Error('ORDER_NOT_FOUND');
-        if (order.status !== 'AWAITING_PAYMENT') {
-          throw new Error('INVALID_STATE');
-        }
-        const agreement = draft.agreements.find((a) => a.orderId === order.id);
-        if (!agreement) throw new Error('NO_AGREEMENT');
-
-        const selectedProvider = provider || 'PSP_CARD_MADA';
-        const targetCurrency: SupportedCurrency =
-          selectedProvider === 'USDT_TRC20' ? 'USDT' : paymentCurrency || agreement.agreedCurrency;
-
-        if (selectedProvider === 'USDT_TRC20') {
-          const conf = Number(confirmationsCount || 0);
-          if (!txHash || txHash.trim().length < 12) {
-            throw new Error('USDT_TX_HASH_REQUIRED');
-          }
-          if (conf < draft.settings.usdtMinConfirmations) {
-            throw new Error('USDT_CONFIRMATIONS_INSUFFICIENT');
-          }
-        }
-
-        // Convert agreed amount into settlement payment currency using locked FX rates
-        const agreedRate = draft.settings.fxRatesFromUsd[agreement.agreedCurrency] || 1;
-        const payRate = draft.settings.fxRatesFromUsd[targetCurrency] || 1;
-        const amountInUsd = agreement.agreedAmount / agreedRate;
-        const expectedAmount = Number((amountInUsd * payRate).toFixed(2));
-
-        const key = idempotencyKey || `fund-${order.id}-${agreement.id}`;
-        const existingIntent = draft.paymentIntents.find((p) => p.idempotencyKey === key);
-        if (existingIntent) {
-          return { order, paymentIntent: existingIntent };
-        }
-
-        const intent = {
-          id: `pay-${crypto.randomUUID().slice(0, 8)}`,
-          orderId: order.id,
-          payerId: req.authUser!.userId,
-          provider: selectedProvider,
-          providerRef:
-            selectedProvider === 'USDT_TRC20'
-              ? txHash!.trim()
-              : `${selectedProvider}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
-          expectedAmount,
-          paymentCurrency: targetCurrency,
-          lockedFxRate: Number((payRate / agreedRate).toFixed(6)),
-          cryptoNetwork: selectedProvider === 'USDT_TRC20' ? draft.settings.usdtNetwork : undefined,
-          depositAddress:
-            selectedProvider === 'USDT_TRC20'
-              ? `T${crypto.createHash('sha256').update(order.id).digest('hex').slice(0, 33).toUpperCase()}`
-              : undefined,
-          txHash: selectedProvider === 'USDT_TRC20' ? txHash?.trim() : undefined,
-          confirmationsCount:
-            selectedProvider === 'USDT_TRC20' ? Number(confirmationsCount) : undefined,
-          status: 'CONFIRMED' as const,
-          idempotencyKey: key,
-          createdAt: new Date().toISOString(),
-        };
-        draft.paymentIntents.push(intent);
-
-        // Update agreement settlement currency & rate
-        agreement.settlementCurrency = targetCurrency;
-        agreement.lockedFxRate = intent.lockedFxRate;
-
-        // Post balanced Double-Entry Ledger entry: DR 1010 PSP Clearing / CR 2020 Held Order Funds
-        postJournalEntry(draft, {
-          referenceType: 'PAYMENT',
-          referenceId: order.id,
-          description: `تأكيد دفع وتمويل الطلب ${order.orderNumber} عبر ${selectedProvider}`,
-          currency: targetCurrency,
-          idempotencyKey: `je-${key}`,
-          createdBy: req.authUser!.userId,
-          lines: [
-            { accountCode: '1010', ownerUserId: null, direction: 'DEBIT', amount: expectedAmount },
-            { accountCode: '2020', ownerUserId: null, direction: 'CREDIT', amount: expectedAmount },
-          ],
-        });
-
-        order.status = 'FUNDED_HELD';
-        order.updatedAt = new Date().toISOString();
-        appendAudit(
-          draft,
-          req.authUser!.userId,
-          'CLIENT',
-          'ORDER_FUNDED_HELD',
-          'ORDER',
-          order.id,
-          `حجز مبلغ ${expectedAmount} ${targetCurrency} للطلب ${order.orderNumber}`,
-        );
-        return { order, paymentIntent: intent };
-      });
-      res.json(result);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Funding failed';
-      if (msg === 'USDT_TX_HASH_REQUIRED') {
-        res.status(400).json({ error: 'Valid TRC-20 transaction hash is required for USDT' });
-        return;
-      }
-      if (msg === 'USDT_CONFIRMATIONS_INSUFFICIENT') {
-        res.status(400).json({
-          error: 'At least 20 blockchain confirmations are required before confirming USDT payment',
-        });
-        return;
-      }
-      res.status(400).json({ error: msg });
-    }
+  // Never mark a payment as received from client-supplied transaction details.
+  // A verified PSP webhook or trusted blockchain indexer must be integrated first.
+  app.post('/api/orders/:id/fund', requireAuth, requireRole('CLIENT'), (_req, res) => {
+    res.status(503).json({
+      error: 'PAYMENT_PROVIDER_NOT_CONFIGURED',
+      message: 'Payments are temporarily unavailable until a licensed provider or trusted on-chain verifier is configured.',
+    });
   });
 
   app.post('/api/orders/:id/start', requireAuth, requireRole('SPECIALIST'), async (req: AuthRequest, res) => {
