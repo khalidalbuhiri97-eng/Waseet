@@ -95,12 +95,54 @@ function appendAudit(
   });
 }
 
+
+/**
+ * One-time, idempotent cleanup for the demo records shipped in earlier builds.
+ * It deliberately targets only the fixed demo IDs; real customer records remain untouched.
+ */
+async function removeLegacyDemoData(): Promise<void> {
+  const demoUserIds = new Set(['usr-client-01', 'usr-spec-01', 'usr-spec-02', 'usr-spec-03', 'usr-spec-04']);
+  const demoSpecialistIds = new Set(['spec-01', 'spec-02', 'spec-03', 'spec-04']);
+  const demoOrderIds = new Set(['ord-01', 'ord-02']);
+  const demoIds = {
+    documents: new Set(['doc-01', 'doc-02', 'doc-03', 'doc-04', 'doc-05']),
+    services: new Set(['srv-01', 'srv-02', 'srv-03', 'srv-04']),
+    offers: new Set(['off-01']),
+    agreements: new Set(['agr-01']),
+    deliverables: new Set(['del-01']),
+    messages: new Set(['msg-01', 'msg-02']),
+    payments: new Set(['pay-01']),
+    reviews: new Set(['rev-01']),
+  };
+
+  await withTransaction(initFn, (draft) => {
+    draft.users = draft.users.filter((item) => !demoUserIds.has(item.id));
+    draft.specialists = draft.specialists.filter((item) => !demoSpecialistIds.has(item.id));
+    draft.documents = draft.documents.filter((item) => !demoIds.documents.has(item.id) && !demoSpecialistIds.has(item.specialistId));
+    draft.services = draft.services.filter((item) => !demoIds.services.has(item.id) && !demoSpecialistIds.has(item.specialistId));
+    draft.orders = draft.orders.filter((item) => !demoOrderIds.has(item.id) && !demoUserIds.has(item.clientId) && !(item.assignedSpecialistId && demoSpecialistIds.has(item.assignedSpecialistId)));
+    draft.offers = draft.offers.filter((item) => !demoIds.offers.has(item.id) && !demoOrderIds.has(item.orderId) && !demoSpecialistIds.has(item.specialistId));
+    draft.agreements = draft.agreements.filter((item) => !demoIds.agreements.has(item.id) && !demoOrderIds.has(item.orderId));
+    draft.deliverables = draft.deliverables.filter((item) => !demoIds.deliverables.has(item.id) && !demoOrderIds.has(item.orderId));
+    draft.messages = draft.messages.filter((item) => !demoIds.messages.has(item.id) && !demoOrderIds.has(item.orderId) && !demoUserIds.has(item.senderId));
+    draft.paymentIntents = draft.paymentIntents.filter((item) => !demoIds.payments.has(item.id) && !demoOrderIds.has(item.orderId) && !demoUserIds.has(item.payerId));
+    draft.reviews = draft.reviews.filter((item) => !demoIds.reviews.has(item.id) && !demoOrderIds.has(item.orderId) && !demoSpecialistIds.has(item.specialistId));
+    draft.disputes = draft.disputes.filter((item) => !demoOrderIds.has(item.orderId));
+    draft.payouts = draft.payouts.filter((item) => !demoSpecialistIds.has(item.specialistId));
+    draft.journalEntries = draft.journalEntries.filter((entry) => !demoOrderIds.has(entry.referenceId) && !entry.idempotencyKey.startsWith('seed-je-'));
+    const usedAccountIds = new Set(draft.journalEntries.flatMap((entry) => entry.lines.map((line) => line.ledgerAccountId)));
+    draft.ledgerAccounts = draft.ledgerAccounts.filter((account) => usedAccountIds.has(account.id));
+    draft.auditLogs = draft.auditLogs.filter((entry) => entry.id !== 'aud-01' && !demoUserIds.has(entry.actorId) && !demoOrderIds.has(entry.entityId));
+  });
+}
+
 async function startServer(): Promise<void> {
   const app = express();
   app.use(express.json({ limit: '1mb' }));
 
   // Initialize store on boot cleanly
   getState(initFn);
+  await removeLegacyDemoData();
 
   // Health endpoint
   app.get('/api/health', (_req, res) => {
