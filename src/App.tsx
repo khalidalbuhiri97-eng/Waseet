@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { MotionConfig } from 'motion/react';
-import { ArrowLeft, ArrowRight, AlertCircle, Compass, FileSearch, RefreshCw, ShieldCheck, Sparkles } from 'lucide-react';
+import { AlertCircle, Compass, RefreshCw, Sparkles } from 'lucide-react';
 import { apiRequest } from './lib/api';
 import type { Lang } from './i18n/translations';
 import type { CategoryRecord, PlatformSettings, SupportedCurrency } from './shared/types';
@@ -129,12 +129,7 @@ export default function App() {
   };
 
   const isArabic = lang === 'ar';
-  const sectionTitles: Record<Exclude<AppSection, 'specialists'>, string> = {
-    requests: isArabic ? 'الطلبات المفتوحة' : 'Open requests',
-    verify: isArabic ? 'التحقق من الاعتمادات' : 'Credential verification',
-    workspace: isArabic ? 'مساحة العمل' : 'Workspace',
-    admin: isArabic ? 'الإدارة والحوكمة' : 'Administration',
-  };
+
 
   return (
     <MotionConfig reducedMotion="user">
