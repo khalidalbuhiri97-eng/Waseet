@@ -137,6 +137,10 @@ async function removeLegacyDemoData(): Promise<void> {
 }
 
 async function startServer(): Promise<void> {
+  const configuredSessionSecret = process.env.SESSION_SECRET?.trim();
+  if (process.env.NODE_ENV === 'production' && (!configuredSessionSecret || configuredSessionSecret.length < 32)) {
+    throw new Error('Production startup blocked: configure SESSION_SECRET with at least 32 random characters.');
+  }
   const app = express();
   app.use(express.json({ limit: '1mb' }));
 
