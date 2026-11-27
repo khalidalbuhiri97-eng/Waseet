@@ -660,6 +660,32 @@ export function WorkspaceView({
                 )}
               </div>
 
+              {/* Order Lifecycle Visual Progress Track */}
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-[11px] font-medium">
+                {[
+                  { key: 'OPEN', ar: 'العروض', en: 'Offers', active: ['OPEN_FOR_OFFERS', 'OFFERS_RECEIVED'].includes(activeOrder.status) },
+                  { key: 'AGREE', ar: 'الاتفاقية والدفع', en: 'Agreement', active: ['SPECIALIST_SELECTED', 'AWAITING_PAYMENT'].includes(activeOrder.status) },
+                  { key: 'HELD', ar: 'محجوز المبلغ', en: 'Funded Held', active: activeOrder.status === 'FUNDED_HELD' },
+                  { key: 'EXEC', ar: 'قيد التنفيذ', en: 'In Progress', active: ['IN_PROGRESS', 'REVISION_REQUESTED'].includes(activeOrder.status) },
+                  { key: 'REV', ar: 'مراجعة التسليم', en: 'Client Review', active: ['DELIVERED', 'PENDING_CLIENT_REVIEW'].includes(activeOrder.status) },
+                  { key: 'DONE', ar: activeOrder.status === 'DISPUTED' ? 'نزاع مجمد' : activeOrder.status === 'REFUNDED' ? 'مسترد' : 'مكتمل', en: activeOrder.status === 'DISPUTED' ? 'Disputed' : activeOrder.status === 'REFUNDED' ? 'Refunded' : 'Completed', active: ['COMPLETED', 'DISPUTED', 'REFUNDED'].includes(activeOrder.status) },
+                ].map((step, idx) => (
+                  <div
+                    key={step.key}
+                    className={`px-2.5 py-2 rounded-lg border text-center transition-colors ${
+                      step.active
+                        ? activeOrder.status === 'DISPUTED'
+                          ? 'border-red-600 bg-red-50 dark:bg-red-950/30 text-red-800 dark:text-red-300 font-bold'
+                          : 'border-blue-700 bg-blue-50 dark:bg-blue-950/30 text-blue-800 dark:text-blue-300 font-bold'
+                        : 'border-stone-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'
+                    }`}
+                  >
+                    <span className="font-mono me-1">{idx + 1}.</span>
+                    <span>{lang === 'ar' ? step.ar : step.en}</span>
+                  </div>
+                ))}
+              </div>
+
               <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                 {activeOrder.description}
               </p>

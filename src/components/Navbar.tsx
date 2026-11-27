@@ -30,19 +30,19 @@ export function Navbar({
   ];
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-30 border-b border-stone-200/90 dark:border-slate-800/90 bg-white/90 dark:bg-[#0B0F17]/90 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-8">
         {/* Zone 1: Single-element brand wordmark */}
         <button
           type="button"
           onClick={() => onNavigate('specialists')}
-          className="text-xl font-bold tracking-tight text-slate-900 dark:text-white whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-blue-700 rounded"
+          className="text-2xl font-bold tracking-tight text-slate-950 dark:text-white whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-blue-700 rounded"
         >
           {t.brand}
         </button>
 
         {/* Zone 2: 5 concise single-line text nav links */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+        <nav className="hidden md:flex items-center gap-7 text-sm font-medium">
           {navItems.map((item) => {
             const active = activeSection === item.id;
             return (
@@ -50,10 +50,10 @@ export function Navbar({
                 key={item.id}
                 type="button"
                 onClick={() => onNavigate(item.id)}
-                className={`whitespace-nowrap shrink-0 py-1 border-b-2 transition-colors duration-150 ${
+                className={`whitespace-nowrap shrink-0 py-1.5 border-b-2 transition-colors duration-150 ${
                   active
-                    ? 'border-blue-700 text-slate-900 dark:text-white dark:border-blue-500'
-                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    ? 'border-blue-700 text-slate-950 dark:text-white dark:border-blue-400 font-semibold'
+                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
                 }`}
               >
                 {item.label}
@@ -67,7 +67,7 @@ export function Navbar({
           <button
             type="button"
             onClick={onOpenAuth}
-            className="px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-lg transition-colors duration-150 whitespace-nowrap shrink-0"
+            className="px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-slate-950 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-lg transition-colors duration-150 whitespace-nowrap shrink-0"
           >
             {currentUser ? currentUser.name : t.signInCta}
           </button>
@@ -75,7 +75,7 @@ export function Navbar({
       </div>
 
       {/* Compact mobile navigation row */}
-      <div className="md:hidden border-t border-slate-200 dark:border-slate-800 px-4 py-2 flex items-center gap-4 overflow-x-auto text-xs font-medium">
+      <div className="md:hidden border-t border-stone-200 dark:border-slate-800 px-4 py-2 flex items-center gap-4 overflow-x-auto text-xs font-medium">
         {navItems.map((item) => (
           <button
             key={item.id}
@@ -83,7 +83,7 @@ export function Navbar({
             onClick={() => onNavigate(item.id)}
             className={`whitespace-nowrap shrink-0 pb-1 border-b-2 ${
               activeSection === item.id
-                ? 'border-blue-700 text-slate-900 dark:text-white'
+                ? 'border-blue-700 text-slate-950 dark:text-white font-semibold'
                 : 'border-transparent text-slate-600 dark:text-slate-400'
             }`}
           >
